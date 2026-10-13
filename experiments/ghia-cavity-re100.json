@@ -1,0 +1,35 @@
+{
+  "id": "ghia-cavity-re100",
+  "title": "Lid-driven cavity, Re = 100",
+  "claim": "A converged steady solution of the 2D incompressible Navier-Stokes equations in a unit square cavity with a lid moving at speed 1 reproduces the Ghia et al. (1982) centreline velocity profiles at Re = 100.",
+  "equations": [
+    "du/dt + (u.grad)u = -grad p + (1/Re) lap u",
+    "div u = 0",
+    "Projection: u* = u^n + dt(-(u.grad)u + nu lap u);  lap p = div(u*)/dt;  u^(n+1) = u* - dt grad p"
+  ],
+  "method": "cavity-mac (Chorin projection, staggered grid, central differences, explicit Euler, SOR pressure solve)",
+  "conditions": {
+    "domain": "unit square",
+    "Re": 100,
+    "lid_speed": 1,
+    "walls": "no-slip",
+    "grid": "64 x 64 cells",
+    "dt": "0.5 * min(h^2/(4 nu), h/U)",
+    "steady_state_criterion": "max |du/dt| < 1e-6 or t = 60"
+  },
+  "acceptance": {
+    "tolerance_source": "LAB-CHOSEN, set before the first run. The paper states no tolerance for this comparison.",
+    "u_centerline_max_abs_error": 0.02,
+    "v_centerline_max_abs_error": 0.02,
+    "max_cell_divergence": 1e-6,
+    "max_boundary_flux": 1e-10,
+    "max_speed_bound": 1.5
+  },
+  "open_items": [
+    "Reference values are not checked against the PDF (see data/ghia1982_re100.json).",
+    "Page and table numbers for the reference data are unconfirmed.",
+    "The paper uses a vorticity/stream-function multigrid solver on a 129x129 grid. This lab uses a different formulation and grid, so differences include discretisation error.",
+    "The paper does not state a steady-state criterion for Re = 100 that matches this lab's.",
+    "Tolerance of 0.02 is a lab choice, not from the paper."
+  ]
+}

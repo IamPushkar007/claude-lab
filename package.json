@@ -1,0 +1,12 @@
+{
+  "name": "fluid-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "reproduce": "node scripts/reproduce.js",
+    "test": "node --test test/*.test.js",
+    "serve": "node scripts/serve.js"
+  }
+}

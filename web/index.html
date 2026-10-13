@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Code / Paper Lab</title>
+<style>
+  :root { --bg:#050505; --line:#2b2b2b; --dim:#767676; --fg:#d4d4d4; --hi:#fff; --ok:#8fd19e; --bad:#ff6b6b; --warn:#e6b450; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--fg); }
+  body { font:10px/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+  header { display:flex; align-items:flex-start; padding:12px 14px 8px; position:relative; height:58px; }
+  header h1 { margin:0; font-size:17px; letter-spacing:.07em; color:var(--hi); font-weight:800; }
+  header small { display:block; color:var(--dim); font-size:7px; letter-spacing:.16em; text-transform:uppercase; margin-top:3px; }
+  .stats { position:absolute; left:0; right:0; top:12px; pointer-events:none; }
+  .stat { position:absolute; top:0; }
+  .stat span { display:block; color:var(--dim); font-size:7px; letter-spacing:.16em; text-transform:uppercase; }
+  .stat b { font-size:12px; color:var(--hi); }
+  #segs { display:flex; gap:3px; padding:0 0 0 0; height:3px; }
+  #segs i { flex:1; background:#1a1a1a; position:relative; } #segs i b { position:absolute; inset:0 auto 0 0; width:0; background:#e8e8e8; }
+  #hero { position:relative; height:min(82vh,76vw); overflow:hidden; }
+  #hero canvas { width:100%; height:100%; display:block; }
+  #ctl { position:absolute; left:14px; top:10px; display:flex; gap:8px; align-items:center; color:var(--dim); font-size:8px; letter-spacing:.12em; text-transform:uppercase; }
+  select, button { background:rgba(0,0,0,.75); color:var(--fg); border:1px solid #3a3a3a; font:inherit; font-size:9px; padding:2px 7px; cursor:pointer; }
+  button:hover, select:hover { border-color:#888; }
+  #overlay { position:absolute; left:76%; bottom:22%; transform:translateX(-10%); }
+  #overlay .k { color:var(--dim); font-size:7px; letter-spacing:.16em; text-transform:uppercase; }
+  #overlay .eq { font-size:13px; color:var(--hi); margin:2px 0 5px; font-weight:700; }
+  #overlay .live { font-size:9px; }
+  #panels { display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:178px; gap:8px; padding:8px; }
+  @media (max-width:1100px) { #panels { grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:640px) { #panels { grid-template-columns:1fr; } }
+  .panel { border:1px solid var(--line); padding:8px 10px; background:#090909; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+  .panel h2 { margin:0 0 7px; font-size:7px; letter-spacing:.16em; text-transform:uppercase; color:var(--hi); font-weight:800; flex:none; }
+  .panel .body { flex:1; min-height:0; overflow:hidden; position:relative; }
+  .panel .foot { color:var(--dim); font-size:7px; letter-spacing:.06em; margin-top:5px; flex:none; }
+  .panel canvas { width:100%; display:block; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); } .warn { color:var(--warn); } .dim { color:var(--dim); } .hi { color:var(--hi); }
+  table { border-collapse:collapse; width:100%; } td, th { padding:1px 5px 1px 0; text-align:left; vertical-align:middle; font-weight:400; white-space:nowrap; }
+  th { color:var(--dim); font-size:6px; letter-spacing:.12em; text-transform:uppercase; }
+  .feed div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#9a9a9a; } .feed .last { color:var(--hi); font-weight:700; }
+  .feed .n { color:#555; margin-right:6px; } .feed .t { display:inline-block; width:44px; color:#bbb; }
+  .tabs { display:flex; gap:3px; margin-bottom:5px; flex:none; flex-wrap:wrap; } .tabs button { font-size:7px; padding:1px 5px; } .tabs button.on { border-color:#ddd; color:var(--hi); background:#222; }
+  pre { margin:0; white-space:pre; font:inherit; font-size:8.5px; line-height:1.55; color:#cfcfcf; }
+  pre .ln { color:#555; }
+  .scroll { overflow:auto !important; }
+  .chip { display:inline-block; padding:0 6px; border:1px solid #444; background:#161616; color:#ccc; font-size:7px; line-height:12px; margin:1px 0; }
+  .chip.hi { border-color:#bbb; color:#fff; }
+  .bar { display:inline-block; height:8px; background:#1d1d1d; border:1px solid #2e2e2e; width:56px; vertical-align:middle; }
+  .cell { display:inline-block; width:9px; height:9px; margin-right:3px; border:1px solid #3b3b3b; }
+  .cell.warn { background:#5a4510; border-color:var(--warn); } .cell.ok { background:#1d4a2a; border-color:var(--ok); } .cell.bad { background:#5a1d1d; border-color:var(--bad); }
+  .modes { display:flex; gap:4px; margin-top:5px; flex:none; } .modes button { flex:1; font-size:7px; letter-spacing:.14em; padding:3px 0; background:#0e0e0e; }
+  .modes button.on { background:#2b2b2b; color:#fff; border-color:#888; }
+  .two { display:flex; gap:8px; } .two > div { flex:1; } .two label { display:block; font-size:6px; letter-spacing:.14em; color:var(--dim); margin-bottom:2px; }
+  #card { grid-column:1 / -1; grid-row:span 1; display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  @media (max-width:1100px) { #card { grid-template-columns:repeat(2,1fr); } }
+  #card h3 { margin:0 0 3px; font-size:7px; letter-spacing:.14em; color:var(--dim); font-weight:400; text-transform:uppercase; }
+  #card ul { margin:0; padding-left:12px; } #card li { margin-bottom:2px; }
+  #cardpanel { grid-column:1 / -1; }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>CLAUDE CODE / PAPER LAB</h1><small>Research papers &middot; reproducible experiments</small></div>
+  <div class="stats">
+    <div class="stat" style="left:27%"><span>Papers</span><b id="s-papers">-</b></div>
+    <div class="stat" style="left:37%"><span>Agents</span><b id="s-agents">0</b></div>
+    <div class="stat" style="left:47.5%"><span>Methods</span><b id="s-methods">-</b></div>
+    <div class="stat" style="left:58.5%"><span>Ref. scenes</span><b id="s-scenes">-</b></div>
+    <div class="stat" style="left:70%"><span>Further review</span><b id="s-review">-</b></div>
+  </div>
+</header>
+<div id="segs"><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div>
+
+<section id="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div id="ctl">
+    <span id="title-re"></span>
+    <label>Re <select id="re"><option>10</option><option selected>100</option><option>400</option></select></label>
+    <label>Grid <select id="grid"><option>16</option><option>32</option><option selected>64</option></select></label>
+    <button id="toggle">Pause</button><button id="reset">Reset</button>
+  </div>
+  <div id="overlay"><div class="k">Mass conservation</div><div class="eq">&nabla;&middot;u = 0</div><div class="live" id="ov-live"></div></div>
+</section>
+
+<main id="panels">
+  <section class="panel"><h2>Investigation feed</h2><div class="body feed" id="feed"></div></section>
+
+  <section class="panel">
+    <h2>Advection / particle solver</h2>
+    <div class="body"><canvas id="adv" height="100"></canvas></div>
+    <div class="modes" id="modes"><button class="on" data-m="advect">ADVECT</button><button data-m="project">PROJECT</button><button data-m="review">REVIEW</button></div>
+  </section>
+
+  <section class="panel">
+    <h2>Method workspace</h2>
+    <div class="tabs" id="tabs"></div>
+    <div class="body scroll" id="codewrap"><pre id="code"></pre></div>
+  </section>
+
+  <section class="panel">
+    <h2>Shared scene / difference field</h2>
+    <div class="body">
+      <div class="two"><div><label>REFERENCE</label><canvas id="refgrid" height="64"></canvas></div><div><label>IMPLEMENTATION</label><canvas id="impgrid" height="64"></canvas></div></div>
+      <canvas id="diffbars" height="30" style="margin-top:4px"></canvas>
+    </div>
+    <div class="foot" id="diff-foot">SAME INPUT / LOCAL DIFFERENCE</div>
+  </section>
+
+  <section class="panel">
+    <h2>Source / extraction routes</h2>
+    <div class="body"><table id="routes"></table></div>
+    <div class="foot">pages + equations = runnable source. page refs unconfirmed.</div>
+  </section>
+
+  <section class="panel">
+    <h2>Validation / sample buffer</h2>
+    <div class="body">
+      <div style="display:flex;align-items:center;gap:8px"><span class="dim" style="width:52px">MASS</span><canvas id="sp-mass" height="32" style="flex:1"></canvas></div>
+      <div style="display:flex;align-items:center;gap:8px"><span class="dim" style="width:52px">STABILITY</span><canvas id="sp-speed" height="32" style="flex:1"></canvas></div>
+      <div style="display:flex;align-items:center;gap:8px"><span class="dim" style="width:52px">RESIDUAL</span><canvas id="sp-res" height="32" style="flex:1"></canvas></div>
+    </div>
+    <div class="foot">measured from the live run (log10 div, max speed, log10 |du/dt|)</div>
+  </section>
+
+  <section class="panel">
+    <h2>Agents / dispatch &nbsp;<span class="dim">0 / 12 run</span></h2>
+    <div class="body"><table id="agents"></table></div>
+    <div class="foot">none dispatched. stage 1 was built manually in one session.</div>
+  </section>
+
+  <section class="panel">
+    <h2>Method / reference index</h2>
+    <div class="body"><table id="index"></table></div>
+    <div class="foot" id="index-foot"></div>
+  </section>
+
+  <section class="panel" id="cardpanel">
+    <h2>Experiment card</h2>
+    <div class="body scroll" id="card">
+      <div><h3>Claim being tested</h3><div id="claim"></div></div>
+      <div><h3>Conditions used</h3><div id="conditions"></div></div>
+      <div><h3>Difference from reference</h3><div id="diff"></div></div>
+      <div><h3>Still needed to verify</h3><ul id="open"></ul></div>
+    </div>
+  </section>
+</main>
+<script type="module" src="/web/app.js"></script>
+</body>
+</html>
